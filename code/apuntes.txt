@@ -1,0 +1,11 @@
+Tareas:
+
+- Cantidad de variables de distintas fuentes, por distintos niveles de observación, antes y después del preprocesamiento
+- Dos encargos: tabla de casos unicos civil, administrativo; y gráfico
+- Pasos del preprocesamiento
+
+
+Preguntar a Jazmín si los merge del código de Build son correctos. Particularmente me preocupan los duplicados duplicates list ubigeo year
+Estos duplicados no se han reemplazado en la nueva versión de build, o si? 
+Cuando genero los merge entre matrix_siaf-renamu_politica y c1, c2, etc, no permite el merge en c3 y c4. Ello es porque no existe la variable year. Por ello hemos renombrado
+la variable año por year. 
