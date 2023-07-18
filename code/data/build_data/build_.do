@@ -407,7 +407,7 @@ describe, replace
 export excel name varlab using "$varnames/renamu_variables.xlsx", firstrow(variables)
 
 * SIAF FINAL
-use "$input/matrix_siaf_l", clear
+use "$input/matrix_siaf", clear
 describe, replace
 export excel name varlab using "$varnames/siaf_variables.xlsx", firstrow(variables)
 
