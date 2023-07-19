@@ -28,8 +28,14 @@ use $input\contraloria_caso, clear
 
 rename año_inicio year
 rename num_informe doc_name
-collapse (sum) civil penal admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio, by (ubigeo year tipo_control)
-/*  variables: 11
+
+* Agregar variable gasto
+merge 1:1 doc_name using $input\matrix_variable_gasto
+drop if _merge != 3
+drop _merge
+
+collapse (sum) civil penal admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio (first) variable_gasto, by (ubigeo year tipo_control)
+/*  variables: 12
 observaciones: 2183  */
 
 duplicates list ubigeo year
@@ -40,7 +46,7 @@ duplicates list ubigeo year
 *duplicates tag, generate(dup)
 *list if dup==1
 *codebook dup
-order ubigeo year penal civil admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio
+order ubigeo year penal civil admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio variable_gasto
 
 * variable "corrupción intensa"
 gen corrup_intensa = 1 if penal != 0
@@ -93,9 +99,15 @@ gen monto_corrup2 = monto * corrup_amplia
 label var monto_corrup1 "MONTO SEGÚN CORRUPCIÓN INTENSA"
 label var monto_corrup2 "MONTO SEGÚN CORRUPCIÓN AMPLIA"
 
+* Variable gasto
+label var variable_gasto "VARIABLE TIPO DE GASTO"
+label define vg 1 "Gasto corriente" 2 "Gasto capital" 3 "Ambos" 4 "Indeterminado"
+label values variable_gasto vg 
+
+
 save $data/c1, replace
-/*  variables: 19
-observaciones: 657  */
+/*  variables: 20
+observaciones: 2,183  */
 
 
 * (2) contraloría del año inicial del reporte por ubigeo, caso y año
@@ -105,10 +117,16 @@ use $input\contraloria_caso, clear
 
 rename año_inicio year
 rename num_informe doc_name
+
+* Agregar variable gasto
+merge 1:1 doc_name using $input\matrix_variable_gasto
+drop if _merge != 3
+drop _merge
+
 drop titulo_asunto objetivo entidad_auditada año_emision unidad_emite año_fin
-order ubigeo year doc_name tipo_control penal civil admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio
-/*  variables: 12
-observaciones: 3175  */
+order ubigeo year doc_name tipo_control penal civil admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio variable_gasto
+/*  variables: 13
+observaciones: 3174  */
 
 * variable "corrupción intensa"
 gen corrup_intensa = 1 if penal != 0
@@ -161,9 +179,14 @@ gen monto_corrup2 = monto * corrup_amplia
 label var monto_corrup1 "MONTO SEGÚN CORRUPCIÓN INTENSA"
 label var monto_corrup2 "MONTO SEGÚN CORRUPCIÓN AMPLIA"
 
+* Variable gasto
+label var variable_gasto "VARIABLE TIPO DE GASTO"
+label define vg 1 "Gasto corriente" 2 "Gasto capital" 3 "Ambos" 4 "Indeterminado"
+label values variable_gasto vg 
+
 save $data/c2, replace
-/*  variables: 20
-observaciones: 849  */
+/*  variables: 21
+observaciones: 3,174  */
 
 
 * (3) contraloría panel por ubigeo y año
@@ -171,8 +194,14 @@ observaciones: 849  */
 
 use $input\contraloria_panel, clear
 rename año year
+rename num_informe doc_name
 
-collapse (sum) civil penal admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio, by (ubigeo year tipo_control)
+* Agregar variable gasto
+merge m:1 doc_name using $input\matrix_variable_gasto
+drop if _merge != 3
+drop _merge
+
+collapse (sum) civil penal admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio (first) variable_gasto, by (ubigeo year tipo_control)
 /*  variables: 11
 observaciones: 4392  */
 
@@ -184,7 +213,7 @@ duplicates list ubigeo year
 *duplicates tag, generate(dup)
 *list if dup==1
 *codebook dup
-order ubigeo year penal civil admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio
+order ubigeo year penal civil admin adm_ent adm_pas monto_auditado monto_examinado monto_objeto_servicio variable_gasto
 
 * variable "corrupción intensa"
 gen corrup_intensa = 1 if penal != 0
@@ -237,9 +266,14 @@ gen monto_corrup2 = monto * corrup_amplia
 label var monto_corrup1 "MONTO SEGÚN CORRUPCIÓN INTENSA"
 label var monto_corrup2 "MONTO SEGÚN CORRUPCIÓN AMPLIA"
 
+* Variable gasto
+label var variable_gasto "VARIABLE TIPO DE GASTO"
+label define vg 1 "Gasto corriente" 2 "Gasto capital" 3 "Ambos" 4 "Indeterminado"
+label values variable_gasto vg 
+
 save $data/c3, replace
-/*  variables: 19
-observaciones: 1,297  */
+/*  variables: 20
+observaciones: 4,392  */
 
 
 * (4) contraloria panel por ubigeo, caso y año
@@ -247,17 +281,22 @@ observaciones: 1,297  */
 
 use $input\contraloria_panel, clear
 rename año year
-
 rename num_informe doc_name
+
+* Agregar variable gasto
+merge m:1 doc_name using $input\matrix_variable_gasto
+drop if _merge != 3
+drop _merge
+
 gen monto_auditado_promedio = monto_auditado / dif
 gen monto_examinado_promedio = monto_examinado / dif
 gen monto_objeto_promedio = monto_objeto_servicio / dif
 drop monto_auditado monto_examinado monto_objeto_servicio
 
-keep ubigeo year doc_name tipo_control penal civil admin adm_ent adm_pas monto_auditado_promedio monto_examinado_promedio monto_objeto_promedio
+keep ubigeo year doc_name tipo_control penal civil admin adm_ent adm_pas monto_auditado_promedio monto_examinado_promedio monto_objeto_promedio variable_gasto
 /*  variables: 12
 observaciones: 1976  */
-order ubigeo year doc_name penal civil admin adm_ent adm_pas monto_auditado_promedio monto_examinado_promedio monto_objeto_promedio
+order ubigeo year doc_name penal civil admin adm_ent adm_pas monto_auditado_promedio monto_examinado_promedio monto_objeto_promedio variable_gasto
 
 * variable "corrupción intensa"
 gen corrup_intensa = 1 if penal != 0
@@ -310,6 +349,11 @@ gen monto_corrup2 = monto * corrup_amplia
 label var monto_corrup1 "MONTO SEGÚN CORRUPCIÓN INTENSA"
 label var monto_corrup2 "MONTO SEGÚN CORRUPCIÓN AMPLIA"
 
+* Variable gasto
+label var variable_gasto "VARIABLE TIPO DE GASTO"
+label define vg 1 "Gasto corriente" 2 "Gasto capital" 3 "Ambos" 4 "Indeterminado"
+label values variable_gasto vg 
+
 save $data/c4, replace
 /*  variables: 20
 observaciones: 1,976 */
@@ -343,7 +387,7 @@ drop if _merge != 3
 drop _merge
 drop if sharevotprim == . // drop if not present in political vars
 save $data/matrix_c1, replace
-/*  variables: 18,300
+/*  variables: 18,301
 observaciones: 1,794  */
 
 
@@ -357,8 +401,8 @@ drop if _merge != 3
 drop _merge
 drop if sharevotprim == . // drop if not present in political vars
 save $data/matrix_c2, replace
-/*  variables: 18,301
-observaciones: 2,701  */
+/*  variables: 18,302
+observaciones: 2,700  */
 
 
 * (3) contraloría panel por ubigeo y año
@@ -371,7 +415,7 @@ drop if _merge != 3
 drop _merge
 drop if sharevotprim == . // drop if not present in political vars
 save $data/matrix_c3, replace
-/*  variables: 18,300
+/*  variables: 18,301
 observaciones: 3,370  */
 
 
@@ -385,8 +429,8 @@ drop if _merge != 3
 drop _merge
 drop if sharevotprim == . // drop if not present in political vars
 save $data/matrix_c4, replace
-/*  variables: 18,301
-observaciones: 6,273  */
+/*  variables: 18,302
+observaciones: 6,269  */
 
 /*
 erase $input/matrix_renamu_siaf_politica.dta
