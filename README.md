@@ -2,7 +2,7 @@
 
 ## 1. Información General
 
-El presente proyecto utiliza tres bases de datos que fueron obtenidas de la siguiente manera: i) la base renamu se construyó a partir de los cinco módulos que presenta la encuesta, eliminando únicamente aquellas variables no consideradas relevantes para el proyecto, ii) la base siaf es una combinación de las funciones agrupadas por gastos corrientes, gastaos de capital y total de gastos para cada distrito, y iii) la base sentencias fue generada realizando web scraping a los resúmenes de las sentencias obtenidas de la contraloría.
+El presente proyecto utiliza tres bases de datos que fueron obtenidas de la siguiente manera: i) la base renamu se construyó a partir de los cinco módulos que presenta la encuesta, eliminando únicamente aquellas variables no consideradas relevantes para el proyecto, ii) la base siaf es una combinación de las funciones agrupadas por gastos corrientes, gastos de capital y total de gastos para cada distrito, y iii) la base sentencias fue generada realizando web scraping a los resúmenes de las sentencias obtenidas de la contraloría.
 
 * Primer procesamiento
 
