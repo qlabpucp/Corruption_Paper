@@ -11,6 +11,8 @@ if "`c(username)'" == "dell" global main "C:\Users\dell\Documents\GitHub\Corrupt
 
 if "`c(username)'" == "Usuario" global main "C:\Users\Usuario\Desktop\QLAB\GitHub\Corruption_Paper"
 
+if "`c(username)'" == "estca" global main "C:\Users\estca\OneDrive\Documentos\QLAB\Corruption_Paper"
+
 global input "$main\input\input_data"
 global data "$main\input\built_data"
 global extra "$main\extra"
@@ -464,7 +466,7 @@ export excel name varlab using "$varnames/contraloria_variables.xlsx", firstrow(
 ********************************************************************************
 * IETOOLKIT
 ********************************************************************************
-// ssc install iefieldkit
+/*ssc install iefieldkit
 
 * (1) contraloría del año inicial del reporte por ubigeo y año
 *--------------------------------------------------------------
@@ -489,3 +491,4 @@ iecodebook apply using "$iecodebook\cleaning_c3.xlsx"
 use $data/matrix_c4, clear
 iecodebook template using "$iecodebook\cleaning_c4.xlsx", replace
 iecodebook apply using "$iecodebook\cleaning_c4.xlsx"
+*/
