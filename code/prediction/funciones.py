@@ -253,37 +253,6 @@ def filtro_correlacion( dataset, dep, umbral ):
     df_modificada = df_modificada[ candidatas ]
     
     return df_modificada
-
-
-def filtro_vars( dataframe, path ):
-    
-    '''
-    Propósito:
-        Aplicar un filtro de variables para quedarse solo con aquellas variables
-        que están presentes en la base de datos del conjunto de entrenamiento
-        con el que fueron entrenados los modelos  
-    Inputs:
-        - dataframe: dataframe
-        - path: path en el que se encuentra el archivo excel con la lista
-          de variables del conjunto de entrenamiento
-    Output:
-        - Base de datos en la que se eliminaron las variables descritas en el
-          Propósito.    
-    Especificaciones:
-        Debe tenerse en cuenta que la variable 'variable_gasto' solo se encuentra
-        disponible para los datos de entrenamiento y no la totalidad de los datos.
-        Por tanto, en la próxima ejecución debe quitarse como variable predictora.
-    '''
-    
-    df_modificada = dataframe.copy()
-    
-    vars_total    = pd.read_excel( path )
-    vars_total    = vars_total[ 'colname' ].tolist()
-    vars_quedarse = [ var for var in dataframe.columns if var in vars_total ]
-    
-    df_modificada = df_modificada[ vars_quedarse ]
-    
-    return df_modificada    
         
 
 # 3. MÉTODOS DE IMPUTACIÓN

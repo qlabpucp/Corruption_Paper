@@ -1,0 +1,9 @@
+
+- variable_gasto: solo está disponible para la base de datos
+                  del conjunto de entrenamiento. Por ello,
+                  para la siguiente ejecución, es probable
+                  que deba ser eliminada.
+
+- variables políticas: están generando valores perdidos. 
+		       Hay algunos distritos para los cuales no
+                       están disponibles. 
