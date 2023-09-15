@@ -15,6 +15,7 @@ if "`c(username)'" == "estca" global main "C:\Users\estca\OneDrive\Documentos\QL
 
 global input "$main\input\input_data"
 global data "$main\input\built_data"
+global pred "$main\input\prediction_data"
 global extra "$main\extra"
 global varnames "$main\extra\varnames"
 global iecodebook "$main\extra\iecodebook"
@@ -441,6 +442,26 @@ erase $data/c2.dta
 erase $data/c3.dta
 erase $data/c4.dta
 */
+
+
+********************************************************************************
+* EXPORTAR BASES DE DATOS DE VARIABLES PREDICTORAS POR AÑO
+********************************************************************************
+use $input/matrix_renamu_siaf_politica, clear
+keep if inlist(year, 2016, 2017, 2018, 2019, 2020)
+
+levelsof year, local(year_values)
+
+foreach year_val in `year_values' {
+
+    local outfile "$pred\pred_`year_val'.dta"
+    keep if year == `year_val'
+    save "`outfile'", replace
+  
+    use $input/matrix_renamu_siaf_politica, clear
+}
+
+
 
 
 ********************************************************************************
