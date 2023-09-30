@@ -376,78 +376,85 @@ use $input\matrix_renamu_siaf, clear
 merge 1:1 ubigeo year using $input\matrix_politica
 drop _merge
 save $input\matrix_renamu_siaf_politica, replace
-/*  variables: 18,283
+use $input\matrix_renamu_siaf_politica, clear
+merge 1:1 ubigeo year using $input\matrix_canon
+drop _merge
+save $input\matrix_renamu_siaf_politica_canon, replace
+
+/*  variables: 18,302
 observaciones: 25,915  */
 
 
 * (1) contraloría del año inicial del reporte por ubigeo y año
 *--------------------------------------------------------------
-use $input/matrix_renamu_siaf_politica, clear
+use $input/matrix_renamu_siaf_politica_canon, clear
 merge 1:m ubigeo year using $data/c1
-/*  variables: 18,301
+/*  variables: 18,320
 observaciones: 26,249  */
 drop if _merge != 3
 drop _merge
 drop if sharevotprim == . // drop if not present in political vars
 save $data/matrix_c1, replace
-/*  variables: 18,301
+/*  variables: 18,319
 observaciones: 1,794  */
 
 
 * (2) contraloría del año inicial del reporte por ubigeo, caso y año
 *--------------------------------------------------------------------
-use $input/matrix_renamu_siaf_politica, clear
+use $input/matrix_renamu_siaf_politica_canon, clear
 merge 1:m ubigeo year using $data/c2
-/*  variables: 18,302
-observaciones: 27,241  */
+/*  variables: 18,321
+observaciones: 27,240  */
 drop if _merge != 3
 drop _merge
 drop if sharevotprim == . // drop if not present in political vars
 save $data/matrix_c2, replace
-/*  variables: 18,302
+/*  variables: 18,320
 observaciones: 2,700  */
 
 
 * (3) contraloría panel por ubigeo y año
 *----------------------------------------
-use $input/matrix_renamu_siaf_politica, clear
+use $input/matrix_renamu_siaf_politica_canon, clear
 merge 1:m ubigeo year using $data/c3
-/*  variables: 18,301
+/*  variables: 18,320
 observaciones: 27,070  */
 drop if _merge != 3
 drop _merge
 drop if sharevotprim == . // drop if not present in political vars
 save $data/matrix_c3, replace
-/*  variables: 18,301
+/*  variables: 18,319
 observaciones: 3,370  */
 
 
 * (4) contraloria panel por ubigeo, caso y año
 *----------------------------------------------
-use $input/matrix_renamu_siaf_politica, clear
+use $input/matrix_renamu_siaf_politica_canon, clear
 merge 1:m ubigeo year using $data/c4
-/*  variables: 18,302
-observaciones: 30,365  */
+/*  variables: 18,321
+observaciones: 30,361  */
 drop if _merge != 3
 drop _merge
 drop if sharevotprim == . // drop if not present in political vars
 save $data/matrix_c4, replace
-/*  variables: 18,302
+/*  variables: 18,320
 observaciones: 6,269  */
 
-/*
+
 erase $input/matrix_renamu_siaf_politica.dta
+* erase $input/matrix_renamu_siaf_politica_canon.dta
 erase $data/c1.dta
 erase $data/c2.dta
 erase $data/c3.dta
 erase $data/c4.dta
-*/
+
 
 
 ********************************************************************************
 * EXPORTAR BASES DE DATOS DE VARIABLES PREDICTORAS POR AÑO
 ********************************************************************************
-use $input/matrix_renamu_siaf_politica, clear
+
+use $input/matrix_renamu_siaf_politica_canon, clear
 keep if inlist(year, 2016, 2017, 2018, 2019, 2020)
 
 levelsof year, local(year_values)
@@ -458,7 +465,7 @@ foreach year_val in `year_values' {
     keep if year == `year_val'
     save "`outfile'", replace
   
-    use $input/matrix_renamu_siaf_politica, clear
+    use $input/matrix_renamu_siaf_politica_canon, clear
 }
 
 
@@ -487,7 +494,7 @@ export excel name varlab using "$varnames/contraloria_variables.xlsx", firstrow(
 ********************************************************************************
 * IETOOLKIT
 ********************************************************************************
-/*ssc install iefieldkit
+// ssc install iefieldkit
 
 * (1) contraloría del año inicial del reporte por ubigeo y año
 *--------------------------------------------------------------
@@ -512,4 +519,3 @@ iecodebook apply using "$iecodebook\cleaning_c3.xlsx"
 use $data/matrix_c4, clear
 iecodebook template using "$iecodebook\cleaning_c4.xlsx", replace
 iecodebook apply using "$iecodebook\cleaning_c4.xlsx"
-*/

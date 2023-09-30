@@ -7,3 +7,11 @@
 - variables políticas: están generando valores perdidos. 
 		       Hay algunos distritos para los cuales no
                        están disponibles. 
+
+
+
+Dos tareas:
+
+- Verificar si la variable de canon completa se encuentra en la base de datos
+- En caso no se encuentre, construir la variable de canon
+- Hacer la predicción
