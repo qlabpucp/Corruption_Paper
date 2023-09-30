@@ -598,7 +598,7 @@ def resampling( x_train, y_train ):
 
 
 
-def test_models_classification( models, x_train_list, y_train_list, x_test, y_test, path_list ):
+def test_models_classification( models, x_train_list, y_train_list, x_test, y_test, path_list, sufix ):
     
     '''
     Objetivo:
@@ -702,7 +702,7 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                 grid_search.fit( x_train, y_train )
                 
                 results_gs  = pd.DataFrame( grid_search.cv_results_ )
-                results_gs.to_excel( f'{ path_list[ 2 ] }/gs_{ model_name }_{ index }.xlsx' )
+                results_gs.to_excel( f'{ path_list[ 2 ] }/gs_{ sufix }_{ model_name }_{ index }.xlsx' )
 
                 best_model  = grid_search.best_estimator_
                 best_params = grid_search.best_params_
@@ -713,21 +713,21 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                 y_pred_test_class  = best_model.predict( x_test )
                 y_pred_test_proba  = best_model.predict_proba( x_test )[ :, 1 ]
                 
-                joblib.dump( best_model, f'{ path_list[ 0 ] }/model_{ model_name }_{ index }.joblib' )
+                joblib.dump( best_model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ index }.joblib' )
 
                 if hasattr( best_model, 'feature_importances_' ):
                     
                     feature_importances = best_model.feature_importances_
                     vars_df             = pd.DataFrame( {'Var': pred_vars, 'Importance Score': feature_importances } )
                     vars_df             = vars_df.reindex( vars_df[ 'Importance Score' ].abs().sort_values( ascending = False ).index )
-                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ model_name }_{ index }.xlsx' )
+                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
 
                 elif hasattr( best_model, 'coef_' ):
                     
                     coefficients = best_model.coef_[ 0 ]
                     vars_df      = pd.DataFrame( {'Var': best_model.feature_names_in_, 'Coefficient': coefficients } )
                     vars_df      = vars_df.reindex( vars_df[ 'Coefficient' ].abs().sort_values( ascending = False ).index )
-                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ model_name }_{ index }.xlsx' )
+                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
 
             else:
                 model.fit( x_train, y_train )
@@ -740,12 +740,12 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                 y_pred_test_class  = model.predict( x_test )
                 y_pred_test_proba  = model.predict_proba( x_test )[ :, 1 ]
                 
-                joblib.dump( model, f'{ path_models }/{ model_name }_{ index }.joblib' )
+                joblib.dump( model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ index }.joblib' )
 
                 coefficients = model.coef_[ 0 ]
                 vars_df      = pd.DataFrame( {'Var': model.feature_names_in_, 'Coefficient': coefficients } )
                 vars_df      = vars_df.reindex( vars_df[ 'Coefficient' ].abs().sort_values( ascending = False ).index )
-                vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ model_name }_{ index }.xlsx' )
+                vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
 
             accuracy_train  = accuracy_score( y_train, y_pred_train_class )
             log_loss_train  = log_loss( y_train, y_pred_train_class )
