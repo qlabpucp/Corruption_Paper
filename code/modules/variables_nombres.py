@@ -1,5 +1,5 @@
 no_predictoras_variables = ['idmunici',
-                            'ubigeo',
+                            # 'ubigeo',
                             'ccdd',
                             'ccpp',
                             'ccdi',
@@ -1539,9 +1539,7 @@ renamu_numvars = [  'propie_muni_1',
                     'denunciasamb_16' ]
 
 
-siaf_variables_total = [ 'year',
-'ubigeo',
-'piagft_reod',
+siaf_variables_total = [ 'piagft_reod',
 'pimgft_reod',
 'tejgft_reod',
 'tdvgft_reod',

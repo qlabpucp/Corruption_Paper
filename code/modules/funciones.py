@@ -5,7 +5,9 @@ from glob import glob
 import os
 from importlib.machinery import SourceFileLoader
 import xlsxwriter
-vn  = SourceFileLoader( 'variables_nombres', r'..\..\..\code\modules\variables_nombres.py' ).load_module()
+
+import variables_nombres as vn
+# vn  = SourceFileLoader( 'variables_nombres', r'variables_nombres.py' ).load_module()
 
 
 from sklearn.feature_selection import VarianceThreshold
@@ -283,7 +285,7 @@ def filtro_correlacion( dataset, dep, umbral ):
     return df_modificada
 
 
-def filtro_vars( dataframe, path ):
+def filtro_vars( dataframe, path, plus_vars ):
     
     '''
     Propósito:
@@ -294,6 +296,7 @@ def filtro_vars( dataframe, path ):
         - dataframe: dataframe
         - path: path en el que se encuentra el archivo excel con la lista
           de variables del conjunto de entrenamiento
+        - plus_vars: variables adicionales que se desea preservar
     Output:
         - Base de datos en la que se eliminaron las variables descritas en el
           Propósito.    
@@ -307,6 +310,7 @@ def filtro_vars( dataframe, path ):
     
     vars_total    = pd.read_excel( path )
     vars_total    = vars_total[ 'colname' ].tolist()
+    vars_total    = vars_total + plus_vars
     vars_quedarse = [ var for var in dataframe.columns if var in vars_total ]
     
     df_modificada = df_modificada[ vars_quedarse ]
@@ -476,8 +480,7 @@ def imputar_outliers( dataframe, vars, percentil_superior ):
 
 
 
-def dividir_variables_negativas( dataset, val, deps ):
-    
+def dividir_variables_negativas(dataset, val, deps):
     '''
     Propósito: 
         - Dividir todas aquellas variables negativas en la dataset
@@ -496,24 +499,22 @@ def dividir_variables_negativas( dataset, val, deps ):
 
     df_modificada = dataset.copy()
     
-    variables_negativas = df_modificada.columns[ ( df_modificada < 0 ).any() ].tolist()   
-    variables_negativas = [var for var in variables_negativas if var not in deps ]
-    for var in variables_negativas:
-        df_modificada[ var ] = df_modificada[ var ] / val  
+    for column in df_modificada.columns:
+        if column not in deps and (df_modificada[column] < 0).any():
+            df_modificada[column] = df_modificada[column] / val  
         
-    return df_modificada  
+    return df_modificada
 
 
 
 def transformacion_log( dataset, vars, deps ):
-    
     '''
     Propósito:
         - Realizar una transformación logarítmica a las variables
           provenientes de SIAF y a las variables dependientes numéricas.
     Inputs:
         - dataset: base de datos
-        - vars: variables a ser transformadas logaritmicamente
+        - vars: variables a ser transformadas logarítmicamente
         - deps: variables que no serán modificadas
     Output:
         - Base de datos con valores pertenecientes a variables
@@ -523,18 +524,21 @@ def transformacion_log( dataset, vars, deps ):
           valores negativos, se suma 1 a todos los valores de las variables SIAF.
     '''
     
-    df_modificada = dataset.copy()    
-
-    negative_vars = df_modificada.columns[ ( df_modificada < 0 ).any() ].tolist()
-    log_vars      = [ var for var in vars if var not in negative_vars and var not in deps ]
+    df_modificada = dataset.copy()
+    
+    log_vars = []
+    
+    for column in df_modificada.columns:
+        if column not in deps:
+            if (df_modificada[column] > 0).all():
+                log_vars.append(column)
     
     for var in log_vars:
         if var in df_modificada.columns: 
-            df_modificada[ var ] = df_modificada[ var ].astype( float )
-            logaritmo            = np.log( df_modificada[ var ] + 1 )
-            df_modificada[ var ] = logaritmo
+            df_modificada[var] = np.log(df_modificada[var] + 1).astype(float)
         
-    return df_modificada               
+    return df_modificada
+            
 
 
 def drop_missing_rows( dataset, missing_vars ):
