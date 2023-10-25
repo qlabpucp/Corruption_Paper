@@ -19114,6 +19114,10 @@ dependientes_categoricas = [ 'corrup_intensa',
                              'corrup_amplia' ]
 
 
-renamu_variables = [ var for var in renamu_variables_total if var not in no_predictoras_variables and var not in string_variables ]
+renamu_variables     = [ var for var in renamu_variables_total if var not in no_predictoras_variables and var not in string_variables ]
 
-siaf_variables = [ var for var in siaf_variables_total if var not in no_predictoras_variables and var not in string_variables ]
+renamu_variables_cat = [ var for var in renamu_variables if var in renamu_catvars ]
+
+renamu_varibles_num  = [ var for var in renamu_variables if var in renamu_numvars ]
+
+siaf_variables       = [ var for var in siaf_variables_total if var not in no_predictoras_variables and var not in string_variables ]
