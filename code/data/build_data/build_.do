@@ -449,6 +449,13 @@ erase $data/c3.dta
 erase $data/c4.dta
 
 
+* (5) Solo SIAF y base C1
+*-------------------------
+use $input\matrix_siaf, clear
+merge 1:m ubigeo year using $data/c1
+drop if _merge != 3
+drop _merge
+save $data/matrix_c1_siaf, replace
 
 ********************************************************************************
 * EXPORTAR BASES DE DATOS DE VARIABLES PREDICTORAS POR AÑO

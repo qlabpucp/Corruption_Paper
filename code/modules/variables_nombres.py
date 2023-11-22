@@ -1,3 +1,20 @@
+
+'''
+
+Listas de variabless:
+
+ - no_predictoras_variables : lista de variables que no ingresan a los modelos
+ - string_variables         : lista de variables string que no ingresan a los modelos      
+ - renamu_variables_total   : lista de variables provenientes de Renamu
+ - renamu_catvars           : lista de variables provenientes de Renamu categóricas
+ - renamu_numvars           : lista de variables provenientes de Renamu numéricas
+ - siaf_variables_total     : lista de variables provenientes de SIAF
+ - politica_variables       : lista de variables políticas
+ - dependientes_variables   : lista de variables dependientes
+ 
+'''
+
+
 no_predictoras_variables = ['idmunici',
                             # 'ubigeo',
                             'ccdd',
@@ -7,7 +24,7 @@ no_predictoras_variables = ['idmunici',
                             'Provincia',
                             'Distrito',
                             'catmuni',
-#                            'year',
+                            # 'year',
                             '_merge',
                             'nomalcalde',
                             'prueba',
