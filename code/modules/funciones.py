@@ -735,8 +735,14 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
 
             else:
                 model.fit( x_train, y_train )
+                
+                if model_name == 'Logistic Regression':
 
-                best_params  = 'No grid search'
+                    best_params  = 'No grid search'
+                    
+                else:
+                    
+                    best_params  = model.C_[ 0 ]                   
 
                 y_pred_train_class = model.predict( x_train )
                 y_pred_train_proba = model.predict_proba( x_train )[ :, 1 ]            
