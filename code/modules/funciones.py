@@ -9,6 +9,8 @@ import xlsxwriter
 # import variables_nombres as vn
 # vn  = SourceFileLoader( 'variables_nombres', 'variables_nombres.py' ).load_module()
 
+import variables_nombres as vn
+
 
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.impute import SimpleImputer
