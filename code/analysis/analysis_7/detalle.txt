@@ -1,0 +1,2 @@
+Hay que asegurarse de la que base no se entrene con valores
+de los años 2007 y 2008 porque solamente son missing

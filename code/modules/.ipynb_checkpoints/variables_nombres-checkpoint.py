@@ -1,5 +1,22 @@
+
+'''
+
+Listas de variabless:
+
+ - no_predictoras_variables : lista de variables que no ingresan a los modelos
+ - string_variables         : lista de variables string que no ingresan a los modelos      
+ - renamu_variables_total   : lista de variables provenientes de Renamu
+ - renamu_catvars           : lista de variables provenientes de Renamu categóricas
+ - renamu_numvars           : lista de variables provenientes de Renamu numéricas
+ - siaf_variables_total     : lista de variables provenientes de SIAF
+ - politica_variables       : lista de variables políticas
+ - dependientes_variables   : lista de variables dependientes
+ 
+'''
+
+
 no_predictoras_variables = ['idmunici',
-                            'ubigeo',
+                            # 'ubigeo',
                             'ccdd',
                             'ccpp',
                             'ccdi',
@@ -7,7 +24,7 @@ no_predictoras_variables = ['idmunici',
                             'Provincia',
                             'Distrito',
                             'catmuni',
-#                            'year',
+                            # 'year',
                             '_merge',
                             'nomalcalde',
                             'prueba',
@@ -1539,9 +1556,7 @@ renamu_numvars = [  'propie_muni_1',
                     'denunciasamb_16' ]
 
 
-siaf_variables_total = [ 'year',
-'ubigeo',
-'piagft_reod',
+siaf_variables_total = [ 'piagft_reod',
 'pimgft_reod',
 'tejgft_reod',
 'tdvgft_reod',
@@ -19116,6 +19131,10 @@ dependientes_categoricas = [ 'corrup_intensa',
                              'corrup_amplia' ]
 
 
-renamu_variables = [ var for var in renamu_variables_total if var not in no_predictoras_variables and var not in string_variables ]
+renamu_variables     = [ var for var in renamu_variables_total if var not in no_predictoras_variables and var not in string_variables ]
 
-siaf_variables = [ var for var in siaf_variables_total if var not in no_predictoras_variables and var not in string_variables ]
+renamu_variables_cat = [ var for var in renamu_variables if var in renamu_catvars ]
+
+renamu_varibles_num  = [ var for var in renamu_variables if var in renamu_numvars ]
+
+siaf_variables       = [ var for var in siaf_variables_total if var not in no_predictoras_variables and var not in string_variables ]

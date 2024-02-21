@@ -15,7 +15,7 @@ import variables_nombres as vn
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import accuracy_score, log_loss, roc_auc_score, f1_score, matthews_corrcoef
+from sklearn.metrics import accuracy_score, log_loss, roc_auc_score, f1_score, matthews_corrcoef, classification_report
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from xgboost import XGBRegressor, XGBClassifier
 from sklearn.linear_model import Lasso, Ridge, LinearRegression
@@ -602,6 +602,18 @@ def resampling( x_train, y_train ):
     
 
 
+def extract_suffix(name):
+    '''
+    Objetivo: 
+        - Extrae el sufijo del nombre del conjunto de entrenamiento.
+          Ejemplo: 'x_train_st' -> 'st'
+    '''
+    parts = name.split('_')
+    if len(parts) > 2:
+        return '_'.join(parts[2:])
+    return 'original'
+
+
 
 
 def test_models_classification( models, x_train_list, y_train_list, x_test, y_test, path_list, sufix ):
@@ -632,10 +644,11 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
         - x_test      : Conjunto de prueba con las variables predictoras
         - y_test      : Cnjunto de prueba con la variable predicha
         - path_list   : Lista de paths donde se guardarán los archivo output. Se asume que la lista de paths
-                        tendrá tres elementos, los cuales son: path en el que se guardan los modelos preentrenados
-                        (primero), path en el que se guardan las listas de variables con importancia/coeficientes 
-                        (segundo) y path en el que se guardan los resultados de grid search (tercero). Se asume
-                        que se sigue el orden mencionado en paréntesis.
+                        tendrá cuatro elementos, los cuales son: path en el que se guardan los modelos preentrenados
+                        (primero), path en el que se guardan las métricas de desempeño (segundo), path en el que se
+                        guardan las  listas de variables con importancia/coeficientes (tercero) y path en el que se 
+                        guardan los resultados de grid search (cuarto). Se asume que se sigue el orden mencionado en 
+                        paréntesis.
                         
     Output:
     
@@ -650,13 +663,13 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                                      
     Especificaciones:
     
-        - Los resultados se muestran con los siguientes números: 0, 1, 2 y 3. Si se sigue el orden indicado 
+        - Los resultados se muestran con los siguientes sufijos: o, s, st y st. Si se sigue el orden indicado 
           para los input x_train_list y y_train_list, los números tienen las siguientes equivalencias:
           
-             * 0: Modelo entrenado con el conjunto de entrenamiento Original
-             * 1: Modelo entrenado con el conjunto de entrenamiento SMOTE
-             * 2: Modelo entrenado con el conjunto de entrenamiento SMOTE Tomek-Links
-             * 3: Modelo entrenado con el conjunto de entrenamiento Naive Random Oversampling
+             * o  : Modelo entrenado con el conjunto de entrenamiento Original
+             * s  : Modelo entrenado con el conjunto de entrenamiento SMOTE
+             * st : Modelo entrenado con el conjunto de entrenamiento SMOTE Tomek-Links
+             * nro: Modelo entrenado con el conjunto de entrenamiento Naive Random Oversampling
              
         - Cuando se realiza Grid Search, se utiliza la estrategia de Cross Validation K Fold con 5 Splits. 
     '''
@@ -664,19 +677,28 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
     results = {
         
         'Model'             : [],
+        
         'accuracy_train'    : [],
-        'accuracy_test'     : [],
         'log_loss_train'    : [],
-        'log_loss_test'     : [],
         'roc_auc_train'     : [],
-        'roc_auc_test'      : [],
         'f1_train'          : [],
+        'f1_train_si'       : [],
+        'f1_train_no'       : [],        
+        'MCC_train'         : [],               
+        
+        'accuracy_test'     : [],
+        'log_loss_test'     : [],
+        'roc_auc_test'      : [],
         'f1_test'           : [],
-        'MCC_train'         : [],
+        'f1_test_si'        : [],
+        'f1_test_no'        : [],        
         'MCC_test'          : [],
+        
         'Grid_Search_Params': []
         
     }
+    
+    columns   = [ 'no', 'si' ]
     
     for path in path_list:
         if not os.path.exists( path ):
@@ -696,19 +718,21 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
             
             
         for index, ( x_train, y_train ) in enumerate( zip( x_train_list, y_train_list ) ):
-            
+
+            train_suffix = extract_suffix( x_train.name ) 
             pred_vars      = x_train.columns.to_list()
             variables_dict = {}
 
             if grid_params is not None:
 
                 cv          = KFold( n_splits = 5, shuffle = True, random_state = 2023 )
-                grid_search = GridSearchCV( model, grid_params, cv = cv )
+                scoring     = 'f1_macro'
+                grid_search = GridSearchCV( model, grid_params, cv = cv, scoring = scoring )
 
                 grid_search.fit( x_train, y_train )
                 
                 results_gs  = pd.DataFrame( grid_search.cv_results_ )
-                results_gs.to_excel( f'{ path_list[ 2 ] }/gs_{ sufix }_{ model_name }_{ index }.xlsx' )
+                results_gs.to_excel( f'{ path_list[ 3 ] }/gs_{ sufix }_{ model_name }_{ train_suffix }.xlsx' )
 
                 best_model  = grid_search.best_estimator_
                 best_params = grid_search.best_params_
@@ -719,21 +743,21 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                 y_pred_test_class  = best_model.predict( x_test )
                 y_pred_test_proba  = best_model.predict_proba( x_test )[ :, 1 ]
                 
-                joblib.dump( best_model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ index }.joblib' )
+                joblib.dump( best_model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ train_suffix }.joblib' )
 
                 if hasattr( best_model, 'feature_importances_' ):
                     
                     feature_importances = best_model.feature_importances_
                     vars_df             = pd.DataFrame( {'Var': pred_vars, 'Importance Score': feature_importances } )
                     vars_df             = vars_df.reindex( vars_df[ 'Importance Score' ].abs().sort_values( ascending = False ).index )
-                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
+                    vars_df.to_excel( f'{ path_list[ 2 ] }/varlist_{ sufix }_{ model_name }_{ train_suffix }.xlsx' )
 
                 elif hasattr( best_model, 'coef_' ):
                     
                     coefficients = best_model.coef_[ 0 ]
                     vars_df      = pd.DataFrame( {'Var': best_model.feature_names_in_, 'Coefficient': coefficients } )
                     vars_df      = vars_df.reindex( vars_df[ 'Coefficient' ].abs().sort_values( ascending = False ).index )
-                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
+                    vars_df.to_excel( f'{ path_list[ 2 ] }/varlist_{ sufix }_{ model_name }_{ train_suffix }.xlsx' )
 
             else:
                 model.fit( x_train, y_train )
@@ -752,39 +776,214 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                 y_pred_test_class  = model.predict( x_test )
                 y_pred_test_proba  = model.predict_proba( x_test )[ :, 1 ]
                 
-                joblib.dump( model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ index }.joblib' )
+                joblib.dump( model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ train_suffix }.joblib' )
 
-                coefficients = model.coef_[ 0 ]
-                vars_df      = pd.DataFrame( {'Var': model.feature_names_in_, 'Coefficient': coefficients } )
-                vars_df      = vars_df.reindex( vars_df[ 'Coefficient' ].abs().sort_values( ascending = False ).index )
-                vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
+                coefficients  = model.coef_[ 0 ]
+                vars_df       = pd.DataFrame( {'Var': model.feature_names_in_, 'Coefficient': coefficients } )
+                vars_df       = vars_df.reindex( vars_df[ 'Coefficient' ].abs().sort_values( ascending = False ).index )
+                vars_df.to_excel( f'{ path_list[ 2 ] }/varlist_{ sufix }_{ model_name }_{ train_suffix }.xlsx' )
 
-            accuracy_train  = accuracy_score( y_train, y_pred_train_class )
-            log_loss_train  = log_loss( y_train, y_pred_train_class )
-            roc_auc_train   = roc_auc_score( y_train, y_pred_train_proba )
-            f1_score_train  = f1_score( y_train, y_pred_train_class, average = 'macro' )
-            mcc_score_train = matthews_corrcoef( y_train, y_pred_train_class )
+            report_train      = classification_report( y_train, y_pred_train_class, target_names = columns, output_dict = True )
+            report_test       = classification_report( y_test, y_pred_test_class, target_names = columns, output_dict = True )            
+            
+            accuracy_train    = accuracy_score( y_train, y_pred_train_class )
+            log_loss_train    = log_loss( y_train, y_pred_train_class )
+            roc_auc_train     = roc_auc_score( y_train, y_pred_train_proba )
+            f1_score_train    = f1_score( y_train, y_pred_train_class, average = 'macro' )
+            f1_score_train_si = report_train[ 'si' ][ 'f1-score' ]
+            f1_score_train_no = report_train[ 'no' ][ 'f1-score' ]
+            mcc_score_train   = matthews_corrcoef( y_train, y_pred_train_class )
 
-            accuracy_test   = accuracy_score( y_test, y_pred_test_class )
-            log_loss_test   = log_loss( y_test, y_pred_test_class )
-            roc_auc_test    = roc_auc_score( y_test, y_pred_test_proba )
-            f1_score_test   = f1_score( y_test, y_pred_test_class, average = 'macro' )
-            mcc_score_test  = matthews_corrcoef( y_test, y_pred_test_class )
+            accuracy_test    = accuracy_score( y_test, y_pred_test_class )
+            log_loss_test    = log_loss( y_test, y_pred_test_class )
+            roc_auc_test     = roc_auc_score( y_test, y_pred_test_proba )
+            f1_score_test    = f1_score( y_test, y_pred_test_class, average = 'macro' )
+            f1_score_test_si = report_test[ 'si' ][ 'f1-score' ]
+            f1_score_test_no = report_test[ 'no' ][ 'f1-score' ]
+            mcc_score_test   = matthews_corrcoef( y_test, y_pred_test_class )
 
-            results[ 'Model' ].append( f'{ model_name }_{ index }' )
-            results[ 'accuracy_train' ].append( round( accuracy_train, 3 ) )
-            results[ 'accuracy_test' ].append( round( accuracy_test, 3 ) )
+            results[ 'Model' ].append( f'{ model_name }_{ train_suffix }' )
+            
+            results[ 'accuracy_train' ].append( round( accuracy_train, 3 ) )            
             results[ 'log_loss_train' ].append( round( log_loss_train, 3 ) )
-            results[ 'log_loss_test' ].append( round( log_loss_test, 3 ) )
             results[ 'roc_auc_train' ].append( round( roc_auc_train, 3 ) )
-            results[ 'roc_auc_test' ].append( round( roc_auc_test, 3 ) )
             results[ 'f1_train' ].append( round( f1_score_train, 3 ) )
+            results[ 'f1_train_si' ].append( round( f1_score_train_si, 3 ) )
+            results[ 'f1_train_no' ].append( round( f1_score_train_no, 3 ) )
+            results[ 'MCC_train' ].append( round( mcc_score_train, 3 ) )               
+            
+            results[ 'accuracy_test' ].append( round( accuracy_test, 3 ) )
+            results[ 'log_loss_test' ].append( round( log_loss_test, 3 ) )
+            results[ 'roc_auc_test' ].append( round( roc_auc_test, 3 ) )
             results[ 'f1_test' ].append( round( f1_score_test, 3 ) )
-            results[ 'MCC_train' ].append( round( mcc_score_train, 3 ) )
-            results[ 'MCC_test' ].append( round( mcc_score_test, 3 ) )          
-            results[ 'Grid_Search_Params' ].append( best_params )
-        
-    results_df = pd.DataFrame( results )
-    results_df = results_df.sort_values( by = 'f1_test', ascending = False )
+            results[ 'f1_test_si' ].append( round( f1_score_test_si, 3 ) )
+            results[ 'f1_test_no' ].append( round( f1_score_test_no, 3 ) )   
+            results[ 'MCC_test' ].append( round( mcc_score_test, 3 ) )   
+            
+            results[ 'Grid_Search_Params' ].append( best_params )       
 
-    return results_df
+            results_df = pd.DataFrame( results )
+            results_df.to_excel(( f'{ path_list[ 1 ] }/results_{ sufix }_{ model_name }_{ train_suffix }.xlsx' ))               
+        
+    results_df_general = pd.DataFrame( results )
+    results_df_general = results_df_general.sort_values( by = 'f1_test', ascending = False )
+
+    return results_df_general
+
+
+
+def test_regression_forest(models, x_train_list, y_train_list, x_test, y_test, path_list, sufix):
+
+    '''
+    Objetivo:
+
+        - Implementar el modelo Regression Forest adaptado para una clasificación binaria
+
+    Input:
+
+        - models      : Diccionario que especifica el modelo de Regressión Forest y los parámetros de grid search.
+        - x_train_list: Lista de conjuntos de entrenamiento con las variables predictoras. La lista debe
+                        seguir el siguiente orden: Original, SMOTE, SMOTE Tomek-Links y Naive Random 
+                        Oversampling. Ejemplo: x_train_list = [ x_train, x_train_s, x_train_st, x_train_nro ]
+        - y_train_list: Lista de conjuntos de entrenamiento con la variable predicha. La lista debe
+                        seguir el siguiente orden: Original, SMOTE, SMOTE Tomek-Links y Naive Random 
+                        Oversampling. Ejemplo: y_train_list = [ y_train, y_train_s, y_train_st, y_train_nro ]
+        - x_test      : Conjunto de prueba con las variables predictoras
+        - y_test      : Cnjunto de prueba con la variable predicha
+        - path_list   : Lista de paths donde se guardarán los archivo output. Se asume que la lista de paths
+                        tendrá cuatro elementos, los cuales son: path en el que se guardan los modelos preentrenados
+                        (primero), path en el que se guardan las métricas de desempeño (segundo), path en el que se
+                        guardan las  listas de variables con importancia/coeficientes (tercero) y path en el que se 
+                        guardan los resultados de grid search (cuarto). Se asume que se sigue el orden mencionado en 
+                        paréntesis.
+
+    Output:
+
+        - resultados               : Pandas dataframe con las métricas de los distintos modelos implementados.
+        - modelos entrenados       : todos los modelos entrenados se guardan en formato joblib en el path 
+                                     especificado
+        - lista de variables       : Listas de variables que muestra la importancia (en el caso de los métodos 
+                                     basados en árboles) o coeficientes (en el caso de los métodos lineares) de 
+                                     las variables predictoras. Se muestran en formato de tabla. 
+        - resultados de grid search: Detalles sobre el ajuste del algoritmo de Grid Search. Se muestran en 
+                                     formato de tabla.
+                                     
+    '''
+
+    columns   = [ 'no', 'si' ]
+    threshold_range = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+    for path in path_list:
+        if not os.path.exists(path):
+            os.makedirs(path)
+    
+    results = {
+        'Model'             : [],
+        
+        'accuracy_train'    : [],
+        'log_loss_train'    : [],
+        'roc_auc_train'     : [],
+        'f1_train'          : [],
+        'f1_train_si'       : [],
+        'f1_train_no'       : [],        
+        'MCC_train'         : [],               
+        
+        'accuracy_test'     : [],
+        'log_loss_test'     : [],
+        'roc_auc_test'      : [],
+        'f1_test'           : [],
+        'f1_test_si'        : [],
+        'f1_test_no'        : [],        
+        'MCC_test'          : [],
+        
+        'Grid_Search_Params': []
+        
+    }
+
+    for model_name, model_params in models.items():
+        if 'model' not in model_params:
+            raise ValueError(f'Model is not defined for {model_name}')
+
+        model = model_params['model']
+        grid_params = model_params.get('grid_params', None)
+
+        for index, (x_train, y_train) in enumerate(zip(x_train_list, y_train_list)):
+            train_suffix = extract_suffix( x_train.name ) 
+            pred_vars      = x_train.columns.to_list()
+
+            cv = KFold(n_splits=5, shuffle=True, random_state=2023)
+            grid_search = GridSearchCV(model, grid_params, cv=cv, scoring='r2')
+            grid_search.fit(x_train, y_train)
+            best_model = grid_search.best_estimator_
+            best_params = grid_search.best_params_
+
+            # Export models
+            joblib.dump( best_model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ train_suffix }.joblib' )
+
+            # Export Grid Search Results
+            results_gs  = pd.DataFrame( grid_search.cv_results_ )
+            results_gs.to_excel( f'{ path_list[ 3 ] }/gs_{ sufix }_{ model_name }_{ train_suffix }.xlsx' )
+
+            # Export features importance
+            feature_importances = best_model.feature_importances_
+            vars_df             = pd.DataFrame( {'Var': pred_vars, 'Importance Score': feature_importances } )
+            vars_df             = vars_df.reindex( vars_df[ 'Importance Score' ].abs().sort_values( ascending = False ).index )
+            vars_df.to_excel( f'{ path_list[ 2 ] }/varlist_{ sufix }_{ model_name }_{ train_suffix }.xlsx' )
+
+            y_pred_train_proba = best_model.predict(x_train)
+            y_pred_test_proba = best_model.predict(x_test)
+
+            for threshold in threshold_range:
+
+                # Calcular predicciones y métricas para el threshold actual
+                y_pred_train_class = (best_model.predict(x_train) >= threshold).astype(int)
+                y_pred_test_class = (best_model.predict(x_test) >= threshold).astype(int)
+
+                # Agregar resultados al diccionario
+                report_train = classification_report( y_train, y_pred_train_class, target_names = columns, output_dict = True )
+                report_test = classification_report( y_test, y_pred_test_class, target_names = columns, output_dict = True )  
+                
+                # Calcular métricas para el conjunto de entrenamiento
+                accuracy_train = accuracy_score(y_train, y_pred_train_class)
+                log_loss_train = log_loss(y_train, y_pred_train_proba)
+                roc_auc_train = roc_auc_score(y_train, y_pred_train_proba)
+                f1_score_train = f1_score(y_train, y_pred_train_class, average='macro')
+                f1_score_train_si = report_train['si']['f1-score']
+                f1_score_train_no = report_train['no']['f1-score']
+                mcc_score_train = matthews_corrcoef(y_train, y_pred_train_class)
+
+                # Calcular métricas para el conjunto de pruebas
+                accuracy_test = accuracy_score(y_test, y_pred_test_class)
+                log_loss_test = log_loss(y_test, y_pred_test_proba) 
+                roc_auc_test = roc_auc_score(y_test, y_pred_test_proba)
+                f1_score_test = f1_score(y_test, y_pred_test_class, average='macro')
+                f1_score_test_si = report_test['si']['f1-score']
+                f1_score_test_no = report_test['no']['f1-score'] 
+                mcc_score_test = matthews_corrcoef(y_test, y_pred_test_class)
+
+                # Actualizar el diccionario de resultados
+                results[ 'Model' ].append( f'{threshold}_{ model_name }_{ train_suffix }' )
+                
+                results[ 'accuracy_train' ].append( round( accuracy_train, 3 ) )            
+                results[ 'log_loss_train' ].append( round( log_loss_train, 3 ) )
+                results[ 'roc_auc_train' ].append( round( roc_auc_train, 3 ) )
+                results[ 'f1_train' ].append( round( f1_score_train, 3 ) )
+                results[ 'f1_train_si' ].append( round( f1_score_train_si, 3 ) )
+                results[ 'f1_train_no' ].append( round( f1_score_train_no, 3 ) )
+                results[ 'MCC_train' ].append( round( mcc_score_train, 3 ) )               
+                
+                results[ 'accuracy_test' ].append( round( accuracy_test, 3 ) )
+                results[ 'log_loss_test' ].append( round( log_loss_test, 3 ) )
+                results[ 'roc_auc_test' ].append( round( roc_auc_test, 3 ) )
+                results[ 'f1_test' ].append( round( f1_score_test, 3 ) )
+                results[ 'f1_test_si' ].append( round( f1_score_test_si, 3 ) )
+                results[ 'f1_test_no' ].append( round( f1_score_test_no, 3 ) )   
+                results[ 'MCC_test' ].append( round( mcc_score_test, 3 ) )   
+                
+                results[ 'Grid_Search_Params' ].append( best_params )  
+
+        # Convertir el diccionario de resultados a DataFrame
+        results_df_total = pd.DataFrame(results)
+        results_df_total = results_df_total.sort_values( by = 'f1_test', ascending = False )
+
+    return results_df_total

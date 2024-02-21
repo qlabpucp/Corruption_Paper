@@ -5,13 +5,17 @@ from glob import glob
 import os
 from importlib.machinery import SourceFileLoader
 import xlsxwriter
-vn  = SourceFileLoader( 'variables_nombres', r'..\..\..\code\modules\variables_nombres.py' ).load_module()
+
+# import variables_nombres as vn
+# vn  = SourceFileLoader( 'variables_nombres', 'variables_nombres.py' ).load_module()
+
+import variables_nombres as vn
 
 
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.metrics import accuracy_score, log_loss, roc_auc_score, f1_score, matthews_corrcoef
+from sklearn.metrics import accuracy_score, log_loss, roc_auc_score, f1_score, matthews_corrcoef, classification_report
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from xgboost import XGBRegressor, XGBClassifier
 from sklearn.linear_model import Lasso, Ridge, LinearRegression
@@ -283,7 +287,7 @@ def filtro_correlacion( dataset, dep, umbral ):
     return df_modificada
 
 
-def filtro_vars( dataframe, path ):
+def filtro_vars( dataframe, path, plus_vars ):
     
     '''
     Propósito:
@@ -294,6 +298,7 @@ def filtro_vars( dataframe, path ):
         - dataframe: dataframe
         - path: path en el que se encuentra el archivo excel con la lista
           de variables del conjunto de entrenamiento
+        - plus_vars: variables adicionales que se desea preservar
     Output:
         - Base de datos en la que se eliminaron las variables descritas en el
           Propósito.    
@@ -307,6 +312,7 @@ def filtro_vars( dataframe, path ):
     
     vars_total    = pd.read_excel( path )
     vars_total    = vars_total[ 'colname' ].tolist()
+    vars_total    = vars_total + plus_vars
     vars_quedarse = [ var for var in dataframe.columns if var in vars_total ]
     
     df_modificada = df_modificada[ vars_quedarse ]
@@ -476,8 +482,7 @@ def imputar_outliers( dataframe, vars, percentil_superior ):
 
 
 
-def dividir_variables_negativas( dataset, val, deps ):
-    
+def dividir_variables_negativas(dataset, val, deps):
     '''
     Propósito: 
         - Dividir todas aquellas variables negativas en la dataset
@@ -496,24 +501,22 @@ def dividir_variables_negativas( dataset, val, deps ):
 
     df_modificada = dataset.copy()
     
-    variables_negativas = df_modificada.columns[ ( df_modificada < 0 ).any() ].tolist()   
-    variables_negativas = [var for var in variables_negativas if var not in deps ]
-    for var in variables_negativas:
-        df_modificada[ var ] = df_modificada[ var ] / val  
+    for column in df_modificada.columns:
+        if column not in deps and (df_modificada[column] < 0).any():
+            df_modificada[column] = df_modificada[column] / val  
         
-    return df_modificada  
+    return df_modificada
 
 
 
 def transformacion_log( dataset, vars, deps ):
-    
     '''
     Propósito:
         - Realizar una transformación logarítmica a las variables
           provenientes de SIAF y a las variables dependientes numéricas.
     Inputs:
         - dataset: base de datos
-        - vars: variables a ser transformadas logaritmicamente
+        - vars: variables a ser transformadas logarítmicamente
         - deps: variables que no serán modificadas
     Output:
         - Base de datos con valores pertenecientes a variables
@@ -523,18 +526,21 @@ def transformacion_log( dataset, vars, deps ):
           valores negativos, se suma 1 a todos los valores de las variables SIAF.
     '''
     
-    df_modificada = dataset.copy()    
-
-    negative_vars = df_modificada.columns[ ( df_modificada < 0 ).any() ].tolist()
-    log_vars      = [ var for var in vars if var not in negative_vars and var not in deps ]
+    df_modificada = dataset.copy()
+    
+    log_vars = []
+    
+    for column in df_modificada.columns:
+        if column not in deps:
+            if (df_modificada[column] > 0).all():
+                log_vars.append(column)
     
     for var in log_vars:
         if var in df_modificada.columns: 
-            df_modificada[ var ] = df_modificada[ var ].astype( float )
-            logaritmo            = np.log( df_modificada[ var ] + 1 )
-            df_modificada[ var ] = logaritmo
+            df_modificada[var] = np.log(df_modificada[var] + 1).astype(float)
         
-    return df_modificada               
+    return df_modificada
+            
 
 
 def drop_missing_rows( dataset, missing_vars ):
@@ -598,7 +604,7 @@ def resampling( x_train, y_train ):
 
 
 
-def test_models_classification( models, x_train_list, y_train_list, x_test, y_test, path_list ):
+def test_models_classification( models, x_train_list, y_train_list, x_test, y_test, path_list, sufix ):
     
     '''
     Objetivo:
@@ -658,19 +664,28 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
     results = {
         
         'Model'             : [],
+        
         'accuracy_train'    : [],
-        'accuracy_test'     : [],
         'log_loss_train'    : [],
-        'log_loss_test'     : [],
         'roc_auc_train'     : [],
-        'roc_auc_test'      : [],
         'f1_train'          : [],
+        'f1_train_si'       : [],
+        'f1_train_no'       : [],        
+        'MCC_train'         : [],               
+        
+        'accuracy_test'     : [],
+        'log_loss_test'     : [],
+        'roc_auc_test'      : [],
         'f1_test'           : [],
-        'MCC_train'         : [],
+        'f1_test_si'        : [],
+        'f1_test_no'        : [],        
         'MCC_test'          : [],
+        
         'Grid_Search_Params': []
         
     }
+    
+    columns   = [ 'no', 'si' ]
     
     for path in path_list:
         if not os.path.exists( path ):
@@ -702,7 +717,7 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                 grid_search.fit( x_train, y_train )
                 
                 results_gs  = pd.DataFrame( grid_search.cv_results_ )
-                results_gs.to_excel( f'{ path_list[ 2 ] }/gs_{ model_name }_{ index }.xlsx' )
+                results_gs.to_excel( f'{ path_list[ 2 ] }/gs_{ sufix }_{ model_name }_{ index }.xlsx' )
 
                 best_model  = grid_search.best_estimator_
                 best_params = grid_search.best_params_
@@ -713,26 +728,32 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                 y_pred_test_class  = best_model.predict( x_test )
                 y_pred_test_proba  = best_model.predict_proba( x_test )[ :, 1 ]
                 
-                joblib.dump( best_model, f'{ path_list[ 0 ] }/model_{ model_name }_{ index }.joblib' )
+                joblib.dump( best_model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ index }.joblib' )
 
                 if hasattr( best_model, 'feature_importances_' ):
                     
                     feature_importances = best_model.feature_importances_
                     vars_df             = pd.DataFrame( {'Var': pred_vars, 'Importance Score': feature_importances } )
                     vars_df             = vars_df.reindex( vars_df[ 'Importance Score' ].abs().sort_values( ascending = False ).index )
-                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ model_name }_{ index }.xlsx' )
+                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
 
                 elif hasattr( best_model, 'coef_' ):
                     
                     coefficients = best_model.coef_[ 0 ]
                     vars_df      = pd.DataFrame( {'Var': best_model.feature_names_in_, 'Coefficient': coefficients } )
                     vars_df      = vars_df.reindex( vars_df[ 'Coefficient' ].abs().sort_values( ascending = False ).index )
-                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ model_name }_{ index }.xlsx' )
+                    vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
 
             else:
                 model.fit( x_train, y_train )
+                
+                if model_name == 'Logistic Regression':
 
-                best_params  = 'No grid search'
+                    best_params  = 'No grid search'
+                    
+                else:
+                    
+                    best_params  = model.C_[ 0 ]                   
 
                 y_pred_train_class = model.predict( x_train )
                 y_pred_train_proba = model.predict_proba( x_train )[ :, 1 ]            
@@ -740,37 +761,51 @@ def test_models_classification( models, x_train_list, y_train_list, x_test, y_te
                 y_pred_test_class  = model.predict( x_test )
                 y_pred_test_proba  = model.predict_proba( x_test )[ :, 1 ]
                 
-                joblib.dump( model, f'{ path_models }/{ model_name }_{ index }.joblib' )
+                joblib.dump( model, f'{ path_list[ 0 ] }/model_{ sufix }_{ model_name }_{ index }.joblib' )
 
-                coefficients = model.coef_[ 0 ]
-                vars_df      = pd.DataFrame( {'Var': model.feature_names_in_, 'Coefficient': coefficients } )
-                vars_df      = vars_df.reindex( vars_df[ 'Coefficient' ].abs().sort_values( ascending = False ).index )
-                vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ model_name }_{ index }.xlsx' )
+                coefficients  = model.coef_[ 0 ]
+                vars_df       = pd.DataFrame( {'Var': model.feature_names_in_, 'Coefficient': coefficients } )
+                vars_df       = vars_df.reindex( vars_df[ 'Coefficient' ].abs().sort_values( ascending = False ).index )
+                vars_df.to_excel( f'{ path_list[ 1 ] }/varlist_{ sufix }_{ model_name }_{ index }.xlsx' )
 
-            accuracy_train  = accuracy_score( y_train, y_pred_train_class )
-            log_loss_train  = log_loss( y_train, y_pred_train_class )
-            roc_auc_train   = roc_auc_score( y_train, y_pred_train_proba )
-            f1_score_train  = f1_score( y_train, y_pred_train_class, average = 'macro' )
-            mcc_score_train = matthews_corrcoef( y_train, y_pred_train_class )
+            report_train      = classification_report( y_train, y_pred_train_class, target_names = columns, output_dict = True )
+            report_test       = classification_report( y_test, y_pred_test_class, target_names = columns, output_dict = True )            
+            
+            accuracy_train    = accuracy_score( y_train, y_pred_train_class )
+            log_loss_train    = log_loss( y_train, y_pred_train_class )
+            roc_auc_train     = roc_auc_score( y_train, y_pred_train_proba )
+            f1_score_train    = f1_score( y_train, y_pred_train_class, average = 'macro' )
+            f1_score_train_si = report_train[ 'si' ][ 'f1-score' ]
+            f1_score_train_no = report_train[ 'no' ][ 'f1-score' ]
+            mcc_score_train   = matthews_corrcoef( y_train, y_pred_train_class )
 
-            accuracy_test   = accuracy_score( y_test, y_pred_test_class )
-            log_loss_test   = log_loss( y_test, y_pred_test_class )
-            roc_auc_test    = roc_auc_score( y_test, y_pred_test_proba )
-            f1_score_test   = f1_score( y_test, y_pred_test_class, average = 'macro' )
-            mcc_score_test  = matthews_corrcoef( y_test, y_pred_test_class )
+            accuracy_test    = accuracy_score( y_test, y_pred_test_class )
+            log_loss_test    = log_loss( y_test, y_pred_test_class )
+            roc_auc_test     = roc_auc_score( y_test, y_pred_test_proba )
+            f1_score_test    = f1_score( y_test, y_pred_test_class, average = 'macro' )
+            f1_score_test_si = report_test[ 'si' ][ 'f1-score' ]
+            f1_score_test_no = report_test[ 'no' ][ 'f1-score' ]
+            mcc_score_test   = matthews_corrcoef( y_test, y_pred_test_class )
 
             results[ 'Model' ].append( f'{ model_name }_{ index }' )
-            results[ 'accuracy_train' ].append( round( accuracy_train, 3 ) )
-            results[ 'accuracy_test' ].append( round( accuracy_test, 3 ) )
+            
+            results[ 'accuracy_train' ].append( round( accuracy_train, 3 ) )            
             results[ 'log_loss_train' ].append( round( log_loss_train, 3 ) )
-            results[ 'log_loss_test' ].append( round( log_loss_test, 3 ) )
             results[ 'roc_auc_train' ].append( round( roc_auc_train, 3 ) )
-            results[ 'roc_auc_test' ].append( round( roc_auc_test, 3 ) )
             results[ 'f1_train' ].append( round( f1_score_train, 3 ) )
+            results[ 'f1_train_si' ].append( round( f1_score_train_si, 3 ) )
+            results[ 'f1_train_no' ].append( round( f1_score_train_no, 3 ) )
+            results[ 'MCC_train' ].append( round( mcc_score_train, 3 ) )               
+            
+            results[ 'accuracy_test' ].append( round( accuracy_test, 3 ) )
+            results[ 'log_loss_test' ].append( round( log_loss_test, 3 ) )
+            results[ 'roc_auc_test' ].append( round( roc_auc_test, 3 ) )
             results[ 'f1_test' ].append( round( f1_score_test, 3 ) )
-            results[ 'MCC_train' ].append( round( mcc_score_train, 3 ) )
-            results[ 'MCC_test' ].append( round( mcc_score_test, 3 ) )          
-            results[ 'Grid_Search_Params' ].append( best_params )
+            results[ 'f1_test_si' ].append( round( f1_score_test_si, 3 ) )
+            results[ 'f1_test_no' ].append( round( f1_score_test_no, 3 ) )   
+            results[ 'MCC_test' ].append( round( mcc_score_test, 3 ) )   
+            
+            results[ 'Grid_Search_Params' ].append( best_params )                    
         
     results_df = pd.DataFrame( results )
     results_df = results_df.sort_values( by = 'f1_test', ascending = False )
