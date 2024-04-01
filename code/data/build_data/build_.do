@@ -467,7 +467,7 @@ save $data/matrix_c1_siaf_canon_1620, replace
 ********************************************************************************
 
 use $input/matrix_renamu_siaf_politica_canon, clear
-keep if inlist(year, 2016, 2017, 2018, 2019, 2020)
+keep if inlist(year, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020)
 
 levelsof year, local(year_values)
 
